@@ -2,11 +2,8 @@
  * CS 6366.001 - Computer Graphics - F17
  * Instructor: Kang Zhang
  * Student: Binhan Wang (bxw161330)
- *
- * Assignment 2
- *
- * Enhance your Tetris program (from your Assignment 1 submission)
- *
+ * <p>
+ * Assignment 3
  */
 
 import javax.swing.*;
@@ -32,15 +29,32 @@ public class GameOfTetris {
     // Main area
     final static int DEFAULT_MAINAREA_WIDTH = 10;
     final static int DEFAULT_MAINAREA_HEIGHT = 20;
+    final static int MAX_MAINAREA_WIDTH = 20;
+    final static int MAX_MAINAREA_HEIGHT = 30;
 
     static int MAINAREA_WIDTH = DEFAULT_MAINAREA_WIDTH;
     static int MAINAREA_HEIGHT = DEFAULT_MAINAREA_HEIGHT;
+
+    // UI properties
+
+    final static int DEFAULT_BLOCKSIZE = 30;
+    static int BLOCKSIZE = DEFAULT_BLOCKSIZE;
+    final static int MARGIN = 10;
+
+
+    static int frameWidth() {
+        return BLOCKSIZE * (MAINAREA_WIDTH + 5) + 3 * MARGIN;
+    }
+
+    static int frameHeight() {
+        return BLOCKSIZE * MAINAREA_HEIGHT + MARGIN * 2;
+    }
 
     // Gaming
     final static int BASE_TIMER_INTERVAL = 500;
 
     static int LEVEL = 1;
-    static int LINE = 1;
+    static int LINE = 0;
     static int SCORE = 0;
 
     // Factors
@@ -63,7 +77,7 @@ public class GameOfTetris {
      * @param args
      */
     public static void main(String[] args) {
-        GameOfTetris.getInstance().showSettingDialog();
+        GameOfTetris.getInstance().showNewGameDialog();
     }
 
     /**
@@ -71,13 +85,14 @@ public class GameOfTetris {
      */
     // class for timer task
     static class GameTimerTask extends TimerTask {
-        GameTimerTask(){
+        GameTimerTask() {
 
         }
+
         @Override
-        public void run(){
+        public void run() {
             System.out.println("Timer tick!");
-            if(GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.MoveDown))
+            if (GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.MoveDown))
                 GameOfTetris.getInstance().canvas.repaint();
         }
     }
@@ -91,52 +106,54 @@ public class GameOfTetris {
             MoveRight,
             MoveDown,
             RotateLeft,
-            RotateRight;
+            RotateRight,
+            Change;
         }
 
         private enum Tetromino_Type {
-            Tetromino_S(new Color(255,250,0), new boolean[][]{
+            Tetromino_S(new Color(255, 250, 0), new boolean[][]{
                     {false, true, true},
-                    { true, true,false},
-                    {false,false,false}
-            }, new int[]{3,-2}),
-            Tetromino_Z(new Color(91,47,139),new boolean[][]{
-                    { true, true,false},
+                    {true, true, false},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_Z(new Color(91, 47, 139), new boolean[][]{
+                    {true, true, false},
                     {false, true, true},
-                    {false,false,false}
-            }, new int[]{3,-2}),
-            Tetromino_J(new Color(0,93,175),new boolean[][]{
-                    { true,false,false},
-                    { true, true, true},
-                    {false,false,false}
-            }, new int[]{3,-2}),
-            Tetromino_L(new Color(255,33,0),new boolean[][]{
-                    {false,false, true},
-                    { true, true, true},
-                    {false,false,false}
-            }, new int[]{3,-2}),
-            Tetromino_O(new Color(0,153,62),new boolean[][]{
-                    {false, true, true,false},
-                    {false, true, true,false},
-                    {false,false,false,false},
-                    {false,false,false,false}
-            }, new int[]{3,-2}),
-            Tetromino_T(new Color(255,174,0),new boolean[][]{
-                    {false, true,false},
-                    { true, true, true},
-                    {false,false,false}
-            }, new int[]{3,-2}),
-            Tetromino_I(new Color(0,159,236),new boolean[][]{
-                    {false,false,false,false},
-                    { true, true, true, true},
-                    {false,false,false,false},
-                    {false,false,false,false}
-            }, new int[]{3,-2});
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_J(new Color(0, 93, 175), new boolean[][]{
+                    {true, false, false},
+                    {true, true, true},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_L(new Color(255, 33, 0), new boolean[][]{
+                    {false, false, true},
+                    {true, true, true},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_O(new Color(0, 153, 62), new boolean[][]{
+                    {false, true, true, false},
+                    {false, true, true, false},
+                    {false, false, false, false},
+                    {false, false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_T(new Color(255, 174, 0), new boolean[][]{
+                    {false, true, false},
+                    {true, true, true},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_I(new Color(0, 159, 236), new boolean[][]{
+                    {false, false, false, false},
+                    {true, true, true, true},
+                    {false, false, false, false},
+                    {false, false, false, false}
+            }, new int[]{3, -2});
 
             private Color color;
             private boolean[][] initRelativePos;
             private int[] initAnchor;
-            Tetromino_Type(Color color, boolean[][] initRelativePos, int[] initAnchor){
+
+            Tetromino_Type(Color color, boolean[][] initRelativePos, int[] initAnchor) {
                 this.color = color;
                 this.initRelativePos = initRelativePos;
                 this.initAnchor = initAnchor;
@@ -161,8 +178,8 @@ public class GameOfTetris {
              */
             public boolean[][] getInitRelativePos() {
                 boolean[][] initPosCopy = new boolean[initRelativePos.length][];
-                for(int i=0;i<initRelativePos.length;i++)
-                    initPosCopy[i] = Arrays.copyOf(initRelativePos[i],initRelativePos[i].length);
+                for (int i = 0; i < initRelativePos.length; i++)
+                    initPosCopy[i] = Arrays.copyOf(initRelativePos[i], initRelativePos[i].length);
                 return initPosCopy;
             }
 
@@ -171,7 +188,7 @@ public class GameOfTetris {
              * @return
              */
             public int[] getInitAnchor() {
-                return Arrays.copyOf(initAnchor,initAnchor.length);
+                return Arrays.copyOf(initAnchor, initAnchor.length);
             }
         }
 
@@ -180,21 +197,22 @@ public class GameOfTetris {
         private boolean[][] relativePos;
 
         Color color;
-        Tetromino(){
+
+        Tetromino() {
             type = Tetromino_Type.getRandomType();
             relativePos = type.getInitRelativePos();
             anchor = type.getInitAnchor();
             color = type.getColor();
         }
 
-        public static int[][] generateBlockPos(int[] anchor, boolean[][] relativePos){
+        public static int[][] generateBlockPos(int[] anchor, boolean[][] relativePos) {
             int[][] blockPos = new int[4][2];
-            int idx=0;
-            for(int i=0;i<relativePos.length;i++){
-                for(int j=0;j<relativePos[i].length;j++)
-                    if(relativePos[i][j]) {
-                        blockPos[idx][0] = j+anchor[0];
-                        blockPos[idx++][1] = i+anchor[1];
+            int idx = 0;
+            for (int i = 0; i < relativePos.length; i++) {
+                for (int j = 0; j < relativePos[i].length; j++)
+                    if (relativePos[i][j]) {
+                        blockPos[idx][0] = j + anchor[0];
+                        blockPos[idx++][1] = i + anchor[1];
                     }
             }
             return blockPos;
@@ -205,7 +223,7 @@ public class GameOfTetris {
         }
 
         public int[] getAnchor() {
-            return Arrays.copyOf(anchor,anchor.length);
+            return Arrays.copyOf(anchor, anchor.length);
         }
 
         public void setRelativePos(boolean[][] relativePos) {
@@ -214,18 +232,14 @@ public class GameOfTetris {
 
         public boolean[][] getRelativePos() {
             boolean[][] relativePosCopy = new boolean[relativePos.length][];
-            for(int i=0;i<relativePos.length;i++)
-                relativePosCopy[i] = Arrays.copyOf(relativePos[i],relativePos[i].length);
+            for (int i = 0; i < relativePos.length; i++)
+                relativePosCopy[i] = Arrays.copyOf(relativePos[i], relativePos[i].length);
             return relativePosCopy;
         }
 
-        public int[][] getBlocksPos(){
-            return generateBlockPos(anchor,relativePos);
+        public int[][] getBlocksPos() {
+            return generateBlockPos(anchor, relativePos);
         }
-    }
-
-    private enum GameStatus{
-       Init, Playing, Over;
     }
 
     // Application logic singleton object
@@ -234,7 +248,7 @@ public class GameOfTetris {
     // static UI properties
     CvGameOfTetris canvas;
     GameOfTetrisFrame frame;
-    Dialog dialog;
+    JDialog dialog;
 
     // application properties
     private boolean pause;
@@ -242,41 +256,55 @@ public class GameOfTetris {
     private Color[][] mainAreaData;
     private Tetromino fallingTetr;
     private Tetromino nextTetr;
-    private GameStatus status;
+    private boolean isPlaying;
+    private boolean isGameOver;
 
-    private GameOfTetris(){
+    private GameOfTetris() {
         // Init UI element
-        status = GameStatus.Init;
+        isPlaying = false;
+        isGameOver = false;
 
         mainAreaData = new Color[MAINAREA_WIDTH][MAINAREA_HEIGHT];
         canvas = new CvGameOfTetris();
         frame = new GameOfTetrisFrame(canvas);
     }
 
-    public static synchronized GameOfTetris getInstance(){
+    public static synchronized GameOfTetris getInstance() {
         return instance;
     }
 
     /**
      * Game Controls
      */
-    void startGame(){
+    void startGame() {
         System.out.println("Game Start!");
-        status = GameStatus.Playing;
         // trigger timer
         pause = true;
         setPause(false);
 
+        LEVEL = 1;
+        SCORE = 0;
+        LINE = 0;
+
+        mainAreaData = new Color[MAINAREA_WIDTH][MAINAREA_HEIGHT];
+
         fallingTetr = new Tetromino();
         nextTetr = new Tetromino();
-        status = GameStatus.Playing;
+        isPlaying = true;
+        isGameOver = false;
+
+        frame.setSize(frameWidth(), frameHeight());
         canvas.repaint();
     }
-    void endGame(){
-        System.out.println("Game Over!");
-        status = GameStatus.Over;
+
+    void endGame() {
+        System.out.println("End Game!");
+        isPlaying = false;
         setPause(true);
         fallingTetr = null;
+
+        // show new game
+        canvas.repaint();
     }
 
     /**
@@ -285,18 +313,17 @@ public class GameOfTetris {
 
     // property setter which also help to trigger timer
     public void setPause(boolean pause) {
-        if(pause!=this.pause) {
+        if (pause != this.pause) {
             this.pause = pause;
-            if(pause){
+            if (pause) {
                 System.out.println("Timer stop!");
                 timer.cancel();
-            }
-            else {
+            } else {
                 System.out.println("Timer start!");
                 timer = new Timer();
                 //FS = FS x (1 + Level  x S).
-                float interval = (float)BASE_TIMER_INTERVAL/(1f+S*(float)LEVEL);
-                timer.scheduleAtFixedRate(new GameTimerTask(), (int)interval, (int)interval);
+                float interval = (float) BASE_TIMER_INTERVAL / (1f + S * (float) LEVEL);
+                timer.scheduleAtFixedRate(new GameTimerTask(), (int) interval, (int) interval);
             }
         }
     }
@@ -313,7 +340,7 @@ public class GameOfTetris {
         return nextTetr;
     }
 
-    public boolean hitTest(int[][] blocks){
+    public boolean hitTest(int[][] blocks) {
         for (int i = 0; i < blocks.length; i++) {
             int x = blocks[i][0];
             int y = blocks[i][1];
@@ -333,7 +360,7 @@ public class GameOfTetris {
      * @return
      */
     public boolean insideMainArea(int x, int y) {
-        return x>=0&&x< MAINAREA_WIDTH &&y>=0&&y<MAINAREA_HEIGHT;
+        return x >= 0 && x < MAINAREA_WIDTH && y >= 0 && y < MAINAREA_HEIGHT;
     }
 
     /**
@@ -341,17 +368,14 @@ public class GameOfTetris {
      * @param mat
      * @param clockwise
      */
-    public static void rotateMatrix(boolean mat[][], boolean clockwise)
-    {
+    public static void rotateMatrix(boolean mat[][], boolean clockwise) {
         int N = mat.length;
         // Consider all squares one by one
-        for (int x = 0; x < N / 2; x++)
-        {
+        for (int x = 0; x < N / 2; x++) {
             // Consider elements in group of 4 in
             // current square
-            for (int y = x; y < N-x-1; y++)
-            {
-                if(clockwise) {
+            for (int y = x; y < N - x - 1; y++) {
+                if (clockwise) {
                     // store current cell in temp variable
                     boolean temp = mat[x][y];
 
@@ -366,8 +390,7 @@ public class GameOfTetris {
 
                     // assign temp to right
                     mat[y][N - 1 - x] = temp;
-                }
-                else {
+                } else {
                     // store current cell in temp variable
                     boolean temp = mat[x][y];
 
@@ -392,12 +415,16 @@ public class GameOfTetris {
      * @param action
      * @return whether should repaint
      */
-    public boolean moveAction(Tetromino.Action_Type action){
-        if(fallingTetr==null)
+    public boolean moveAction(Tetromino.Action_Type action) {
+        if (fallingTetr == null)
             return false;
 
         boolean[][] newRelativePos = fallingTetr.getRelativePos();
         int[] newAnchor = fallingTetr.getAnchor();
+
+        // for change action
+        Tetromino t = null;
+
         // set new metrics
         switch (action) {
             case MoveDown:
@@ -410,34 +437,47 @@ public class GameOfTetris {
                 newAnchor[0] += 1;
                 break;
             case RotateLeft:
-                if(fallingTetr.type!= Tetromino.Tetromino_Type.Tetromino_O)
-                    rotateMatrix(newRelativePos,true);
+                if (fallingTetr.type != Tetromino.Tetromino_Type.Tetromino_O)
+                    rotateMatrix(newRelativePos, true);
                 break;
             case RotateRight:
-                if(fallingTetr.type!= Tetromino.Tetromino_Type.Tetromino_O)
-                    rotateMatrix(newRelativePos,false);
+                if (fallingTetr.type != Tetromino.Tetromino_Type.Tetromino_O)
+                    rotateMatrix(newRelativePos, false);
                 break;
+            case Change:
+                t = new Tetromino();
+                while (t.type==fallingTetr.type||t.type==nextTetr.type)
+                    t = new Tetromino();
+                t.anchor = fallingTetr.anchor;
+                newRelativePos = t.getRelativePos();
+                break;
+
             default:
                 break;
         }
 
-        int[][] newBlocksPos = Tetromino.generateBlockPos(newAnchor,newRelativePos);
+        int[][] newBlocksPos = Tetromino.generateBlockPos(newAnchor, newRelativePos);
 
-        if(hitTest(newBlocksPos)) {
-            fallingTetr.setAnchor(newAnchor);
-            fallingTetr.setRelativePos(newRelativePos);
+        if (hitTest(newBlocksPos)) {
+            if(action == Tetromino.Action_Type.Change){
+                fallingTetr = t;
+                SCORE -= LEVEL*M;
+            }
+            else {
+                fallingTetr.setAnchor(newAnchor);
+                fallingTetr.setRelativePos(newRelativePos);
+            }
             return true;
-        }
-        else {
+        } else {
             if (action == Tetromino.Action_Type.MoveDown) {
                 // merge fallingTetr into main area data
                 boolean endOfGame = false;
                 int[][] blocksPos = fallingTetr.getBlocksPos();
-                PriorityQueue<Integer> rowsToRemove = new PriorityQueue<>(MAINAREA_HEIGHT,Collections.reverseOrder());
+                PriorityQueue<Integer> rowsToRemove = new PriorityQueue<>(MAINAREA_HEIGHT);
                 for (int i = 0; i < blocksPos.length; i++) {
                     int x = blocksPos[i][0];
                     int y = blocksPos[i][1];
-                    if(!insideMainArea(x,y))
+                    if (!insideMainArea(x, y))
                         endOfGame = true;
                     else {
                         // merge color block to maiArea
@@ -445,26 +485,29 @@ public class GameOfTetris {
 
                         // add rows to remove
                         boolean hasHole = false;
-                        for(int j=0;j<MAINAREA_WIDTH;j++) {
+                        for (int j = 0; j < MAINAREA_WIDTH; j++) {
                             if (mainAreaData[j][y] == null) {
                                 hasHole = true;
                                 break;
                             }
                         }
-                        if(!hasHole)
+                        if (!hasHole)
                             rowsToRemove.add(y);
                     }
                 }
-                if(!endOfGame) {
+                if (!endOfGame) {
                     fallingTetr = nextTetr;
                     nextTetr = new Tetromino();
                     // remove rows if necessary
-                    if(rowsToRemove.size()>0){
+                    if (rowsToRemove.size() > 0) {
                         removeRows(rowsToRemove);
                     }
-                }
-                else {
+                    // need to repaint for row removal
+                    return true;
+                } else {
                     //Game Over
+                    System.out.println("Game Over!");
+                    isGameOver = true;
                     endGame();
                 }
             }
@@ -473,42 +516,42 @@ public class GameOfTetris {
         }
     }
 
-    void removeRows(PriorityQueue<Integer> rows){
+    private void removeRows(PriorityQueue<Integer> rows) {
 
         // Already in descending order
-        int skip = 0;
-        Iterator<Integer> it = rows.iterator();
-        int lowRow = -1;
-        int highRow;
-        while (it.hasNext()) {
-            highRow = lowRow;
-            lowRow = it.next();
-            skip++;
-            for (int r = lowRow - 1; r > highRow; r--) {
-                for(int c = 0; c<MAINAREA_WIDTH;c++)
-                    // move down
-                    mainAreaData[c][r+skip] = mainAreaData[c][r];
+        for (Integer row : rows) {
+            for (int r = row - 1; r >= 0; r--) {
+                for (int c = 0; c < MAINAREA_WIDTH; c++)
+                    mainAreaData[c][r + 1] = mainAreaData[c][r];
             }
+            for (int c = 0; c < MAINAREA_WIDTH; c++)
+                mainAreaData[c][0] = null;
         }
+
+        SCORE += rows.size() * (LEVEL * M);
+        LINE += rows.size();
+
+        if (LINE >= N) {
+            LEVEL++;
+            LINE -= N;
+            setPause(true);
+            setPause(false);
+        }
+
     }
 
     /**
      * Dialogs
      */
-    private void showSettingDialog(){
+    private void showNewGameDialog() {
         // Create a modal dialog
-        dialog = new Dialog(frame, "Settings", true);
+        dialog = new JDialog(frame, "New Game", true);
 
         // Use a flow layout
-        dialog.setLayout( new GridLayout(5,1) );
+        dialog.setLayout(new GridLayout(7, 1));
+        dialog.add(new Label("Game Setting:"));
 
         Panel row = null;
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
-            row.add( new Label ("Game Setting:"));
-        }
-        dialog.add(row);
 
         // Scoring Factor M
         {
@@ -517,9 +560,9 @@ public class GameOfTetris {
 
             row.add(new Label("M:"));
 
-            Label v = new Label(String.format("%02d",M));
+            Label v = new Label(String.format("%02d", M));
 
-            JSlider slider = new JSlider(JSlider.HORIZONTAL,M_MIN,M_MAX,M);
+            JSlider slider = new JSlider(JSlider.HORIZONTAL, M_MIN, M_MAX, M);
             slider.setMajorTickSpacing(3);
             slider.setMinorTickSpacing(1);
             slider.setPaintTicks(true);
@@ -528,7 +571,7 @@ public class GameOfTetris {
                 @Override
                 public void stateChanged(ChangeEvent e) {
                     M = slider.getValue();
-                    v.setText(String.format("%02d",M));
+                    v.setText(String.format("%02d", M));
                 }
             });
             row.add(slider);
@@ -543,9 +586,9 @@ public class GameOfTetris {
 
             row.add(new Label("N:"));
 
-            Label v = new Label(String.format("%02d",N));
+            Label v = new Label(String.format("%02d", N));
 
-            JSlider slider = new JSlider(JSlider.HORIZONTAL,N_MIN,N_MAX,N);
+            JSlider slider = new JSlider(JSlider.HORIZONTAL, N_MIN, N_MAX, N);
             slider.setMajorTickSpacing(5);
             slider.setMinorTickSpacing(1);
             slider.setPaintTicks(true);
@@ -554,7 +597,7 @@ public class GameOfTetris {
                 @Override
                 public void stateChanged(ChangeEvent e) {
                     N = slider.getValue();
-                    v.setText(String.format("%02d",N));
+                    v.setText(String.format("%02d", N));
                 }
             });
             row.add(slider);
@@ -570,25 +613,25 @@ public class GameOfTetris {
 
             row.add(new Label("S:"));
 
-            Label v = new Label(String.format("%.1f",S));
+            Label v = new Label(String.format("%.1f", S));
 
-            JSlider slider = new JSlider(JSlider.HORIZONTAL,(int)(S_MIN*S_SCALE),(int)(S_MAX*S_SCALE),(int)(S*S_SCALE));
+            JSlider slider = new JSlider(JSlider.HORIZONTAL, (int) (S_MIN * S_SCALE), (int) (S_MAX * S_SCALE), (int) (S * S_SCALE));
             slider.setMajorTickSpacing(3);
             slider.setMinorTickSpacing(1);
 
             Hashtable labelTable = new Hashtable();
-            labelTable.put( new Integer( (int)(S_MIN*S_SCALE) ), new JLabel(String.format("%.1f",S_MIN)) );
-            labelTable.put( new Integer( (int)(S_MAX*S_SCALE/2) ), new JLabel(String.format("%.1f",S_MAX/2)));
-            labelTable.put( new Integer( (int)(S_MAX*S_SCALE) ), new JLabel(String.format("%.1f",S_MAX)) );
-            slider.setLabelTable( labelTable );
+            labelTable.put(new Integer((int) (S_MIN * S_SCALE)), new JLabel(String.format("%.1f", S_MIN)));
+            labelTable.put(new Integer((int) (S_MAX * S_SCALE / 2)), new JLabel(String.format("%.1f", S_MAX / 2)));
+            labelTable.put(new Integer((int) (S_MAX * S_SCALE)), new JLabel(String.format("%.1f", S_MAX)));
+            slider.setLabelTable(labelTable);
 
             slider.setPaintTicks(true);
             slider.setPaintLabels(true);
             slider.addChangeListener(new ChangeListener() {
                 @Override
                 public void stateChanged(ChangeEvent e) {
-                    S = (float)slider.getValue()/S_SCALE;
-                    v.setText(String.format("%.1f",S));
+                    S = (float) slider.getValue() / S_SCALE;
+                    v.setText(String.format("%.1f", S));
                 }
             });
             row.add(slider);
@@ -596,23 +639,88 @@ public class GameOfTetris {
         }
         dialog.add(row);
 
+        // Number of Row
         {
             row = new Panel();
             row.setLayout(new FlowLayout(FlowLayout.LEADING));
 
-            // Create an OK button
-            Button ok = new Button ("OK");
-            ok.addActionListener ( new ActionListener()
-            {
-                public void actionPerformed( ActionEvent e )
-                {
+            row.add(new Label("Row:"));
+
+            Label v = new Label(String.format("%02d", MAINAREA_HEIGHT));
+
+            JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_MAINAREA_HEIGHT, MAX_MAINAREA_HEIGHT, MAINAREA_HEIGHT);
+            slider.setMajorTickSpacing(5);
+            slider.setMinorTickSpacing(1);
+            slider.setPaintTicks(true);
+            slider.setPaintLabels(true);
+            slider.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    MAINAREA_HEIGHT = slider.getValue();
+                    v.setText(String.format("%02d", MAINAREA_HEIGHT));
+                }
+            });
+            row.add(slider);
+            row.add(v);
+        }
+        dialog.add(row);
+
+
+        // Number of Columns
+        {
+            row = new Panel();
+            row.setLayout(new FlowLayout(FlowLayout.LEADING));
+
+            row.add(new Label("Columns:"));
+
+            Label v = new Label(String.format("%02d", MAINAREA_WIDTH));
+
+            JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_MAINAREA_WIDTH, MAX_MAINAREA_WIDTH, MAINAREA_WIDTH);
+            slider.setMajorTickSpacing(5);
+            slider.setMinorTickSpacing(1);
+            slider.setPaintTicks(true);
+            slider.setPaintLabels(true);
+            slider.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    MAINAREA_WIDTH = slider.getValue();
+                    v.setText(String.format("%02d", MAINAREA_WIDTH));
+                }
+            });
+            row.add(slider);
+            row.add(v);
+        }
+        dialog.add(row);
+
+        // Buttons
+        {
+            row = new Panel();
+            row.setLayout(new FlowLayout(FlowLayout.LEADING));
+
+            // Create an Start button
+            Button start = new Button("Start");
+            start.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
                     //todo start game
                     startGame();
                     dialog.setVisible(false);
                 }
             });
 
-            row.add(ok);
+            row.add(start);
+
+            // Create an Quit button
+            Button quit = new Button("Cancel");
+            quit.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    if (pause && !isGameOver) {
+                        setPause(false);
+                    }
+                    dialog.setVisible(false);
+                }
+            });
+
+            row.add(quit);
         }
         dialog.add(row);
 
@@ -633,7 +741,7 @@ public class GameOfTetris {
                     System.exit(0);
                 }
             });
-            setSize(620, 800);
+            setSize(frameWidth(), frameHeight());
             add("Center", canvas);
             setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
             setVisible(true);
@@ -652,7 +760,8 @@ public class GameOfTetris {
             boolean hidden = false;
             List<RectComponent> subComponents = new ArrayList<>();
 
-            public RectComponent() {}
+            public RectComponent() {
+            }
 
             public RectComponent(float x, float y, float w, float h) {
                 this.x = x;
@@ -693,18 +802,23 @@ public class GameOfTetris {
 
         // Properties
         int originX = 0, originY = 0; // top-left left-to-right top-to-down coordination
-        float pixelSize, rWidth = 620.0F, rHeight = 800.0F;
-        float blockSize, margin = rWidth/100; // Margin for layout component
+        float pixelSize, rWidth, rHeight, blockSize, margin;
         Font textFont;
         // Components
-        RectComponent mainArea, pauseLabel, nextShape, scorePanel, quitBtn;
+        RectComponent mainArea, pauseLabel, gameOverLabel, nextShape, scorePanel, quitBtn, newGameBtn;
+        List<RectComponent> fallingBlockComponents = new ArrayList<>();
+
+        // Change flag
+        boolean changeFlag = false;
 
         CvGameOfTetris() {
             mainArea = new RectComponent();
             pauseLabel = new RectComponent();
+            gameOverLabel = new RectComponent();
             nextShape = new RectComponent();
             scorePanel = new RectComponent();
             quitBtn = new RectComponent();
+            newGameBtn = new RectComponent();
 
             pauseLabel.hidden = true;
 
@@ -714,23 +828,20 @@ public class GameOfTetris {
 
                     super.mousePressed(evt);
 
-                    // do not response to any event when game is not playing
-                    if(GameOfTetris.getInstance().status!=GameStatus.Playing)
-                        return;
-
                     int btn = evt.getButton();
                     float xA = fx(evt.getX()), yA = fy(evt.getY());
-                    if (btn==MouseEvent.BUTTON1) {
-                        if(quitBtn != null && quitBtn.inside(xA, yA)) {
+                    if (btn == MouseEvent.BUTTON1) {
+                        if (quitBtn != null && quitBtn.inside(xA, yA)) {
                             System.exit(0);
-                        }
-                        else if(!GameOfTetris.getInstance().pause){
+                        } else if (newGameBtn != null && newGameBtn.inside(xA, yA)) {
+                            GameOfTetris.getInstance().setPause(true);
+                            GameOfTetris.getInstance().showNewGameDialog();
+                        } else if (!GameOfTetris.getInstance().pause && GameOfTetris.getInstance().isPlaying) {
                             GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.MoveLeft);
                             repaint();
                         }
-                    }
-                    else if(btn==MouseEvent.BUTTON3) {
-                        if(!GameOfTetris.getInstance().pause){
+                    } else if (btn == MouseEvent.BUTTON3) {
+                        if (!GameOfTetris.getInstance().pause && GameOfTetris.getInstance().isPlaying) {
                             GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.MoveRight);
                             repaint();
                         }
@@ -744,19 +855,19 @@ public class GameOfTetris {
                     super.mouseWheelMoved(evt);
 
                     // do not response to any event when game is not playing
-                    if(GameOfTetris.getInstance().status!=GameStatus.Playing)
+                    if (!GameOfTetris.getInstance().isPlaying)
                         return;
 
-                    if(GameOfTetris.getInstance().pause)
+                    if (GameOfTetris.getInstance().pause)
                         return;
                     if (evt.getWheelRotation() < 0) {
                         System.out.println("Rotated Up... " + evt.getWheelRotation());
-                        if(GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.RotateLeft))
+                        if (GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.RotateLeft))
                             repaint();
 
                     } else {
                         System.out.println("Rotated Down... " + evt.getWheelRotation());
-                        if(GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.RotateRight))
+                        if (GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.RotateRight))
                             repaint();
                     }
                     System.out.println("ScrollAmount: " + evt.getScrollAmount());
@@ -768,7 +879,7 @@ public class GameOfTetris {
                     super.mouseMoved(evt);
 
                     // do not response to any event when game is not playing
-                    if(GameOfTetris.getInstance().status!=GameStatus.Playing)
+                    if (!GameOfTetris.getInstance().isPlaying)
                         return;
 
                     float xA = fx(evt.getX()), yA = fy(evt.getY());
@@ -781,6 +892,22 @@ public class GameOfTetris {
                             repaint();
                         }
                     }
+
+                    boolean setFlag = true;
+                    for(RectComponent block : fallingBlockComponents){
+                        if(block.inside(xA,yA)){
+                            setFlag = false;
+                            if(!changeFlag) {
+                                if(GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.Change))
+                                    repaint();
+                                changeFlag = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(setFlag)
+                        changeFlag = false;
+
                 }
             });
         }
@@ -788,10 +915,15 @@ public class GameOfTetris {
         void initgr() {
             Dimension d = getSize();
             int maxX = d.width - 1, maxY = d.height - 1;
+
+            rWidth = (float) frameWidth();
+            rHeight = (float) frameHeight();
+            margin = fl(MARGIN); // Margin for layout component
+            blockSize = fl(BLOCKSIZE);
+
             pixelSize = Math.max(rWidth / maxX, rHeight / maxY);
-            blockSize = (rHeight - 2 * margin) / 20;
-            // Question: how to make font size proportional to size change?
-            textFont = new Font("Dialog", Font.BOLD, iL(20/pixelSize));
+
+            textFont = new Font("Dialog", Font.BOLD, iL(16 / pixelSize));
         }
 
         int iX(float x) {
@@ -802,8 +934,8 @@ public class GameOfTetris {
             return Math.round(originY + y / pixelSize);
         }
 
-        int iL(float length) {
-            return Math.round(length / pixelSize);
+        int iL(float l) {
+            return Math.round(l / pixelSize);
         }
 
         float fx(int x) {
@@ -812,6 +944,10 @@ public class GameOfTetris {
 
         float fy(int y) {
             return (y - originY) * pixelSize;
+        }
+
+        float fl(int L) {
+            return (float) L;
         }
 
         void drawComponent(Graphics g, RectComponent c) {
@@ -826,7 +962,7 @@ public class GameOfTetris {
                 }
 
                 // draw border
-                if(c.borderColor!=null) {
+                if (c.borderColor != null) {
                     g.setColor(c.borderColor);
                     g.drawRect(X, Y, W, H);
                 }
@@ -855,13 +991,17 @@ public class GameOfTetris {
                 float width = MAINAREA_WIDTH * blockSize;
                 float height = MAINAREA_HEIGHT * blockSize;
                 float x = margin, y = margin;
-                mainArea.x = x; mainArea.y = y; mainArea.w = width; mainArea.h = height;
+                mainArea.x = x;
+                mainArea.y = y;
+                mainArea.w = width;
+                mainArea.h = height;
                 mainArea.subComponents.clear();
             }
 
             // add falling blocks to mainArea
             Tetromino fallingTer = GameOfTetris.getInstance().getFallingTetr();
-            if(fallingTer!=null) {
+            fallingBlockComponents.clear();
+            if (fallingTer != null) {
                 int[][] fallingBlocks = fallingTer.getBlocksPos();
                 for (int i = 0; i < fallingBlocks.length; i++) {
                     int[] xy = fallingBlocks[i];
@@ -870,6 +1010,7 @@ public class GameOfTetris {
                     if (GameOfTetris.getInstance().insideMainArea(x, y)) {
                         RectComponent block = new RectComponent(mainArea.relativeX((float) x * blockSize), mainArea.relativeY((float) y * blockSize), blockSize, blockSize);
                         block.fillColor = fallingTer.color;
+                        fallingBlockComponents.add(block);
                         mainArea.addSubComponent(block);
                     }
                 }
@@ -879,7 +1020,7 @@ public class GameOfTetris {
             Color[][] data = GameOfTetris.getInstance().getMainAreaData();
             for (int x = 0; x < data.length; x++) {
                 for (int y = 0; y < data[x].length; y++) {
-                    if(data[x][y]!=null) {
+                    if (data[x][y] != null) {
                         RectComponent block = new RectComponent(mainArea.relativeX((float) x * blockSize), mainArea.relativeY((float) y * blockSize), blockSize, blockSize);
                         block.fillColor = data[x][y];
                         mainArea.addSubComponent(block);
@@ -896,10 +1037,25 @@ public class GameOfTetris {
 
                 // set size
                 FontMetrics metrics = g.getFontMetrics(g.getFont());
-                pauseLabel.w = metrics.stringWidth(pauseLabel.text) + margin * 4;
-                pauseLabel.h = metrics.getHeight() + margin * 4;
+                pauseLabel.w = metrics.stringWidth(pauseLabel.text) + margin * 2;
+                pauseLabel.h = metrics.getHeight() + margin * 2;
                 pauseLabel.setCenter(mainArea.centerX(), mainArea.centerY());
                 mainArea.addSubComponent(pauseLabel);
+            }
+
+            // Pause
+            if (GameOfTetris.getInstance().isGameOver) {
+                String text = "Game Over";
+                gameOverLabel.text = text;
+                gameOverLabel.textColor = Color.red;
+                gameOverLabel.borderColor = Color.red;
+
+                // set size
+                FontMetrics metrics = g.getFontMetrics(g.getFont());
+                gameOverLabel.w = metrics.stringWidth(gameOverLabel.text) + margin * 2;
+                gameOverLabel.h = metrics.getHeight() + margin * 2;
+                gameOverLabel.setCenter(mainArea.centerX(), mainArea.centerY());
+                mainArea.addSubComponent(gameOverLabel);
             }
 
             // draw
@@ -911,8 +1067,11 @@ public class GameOfTetris {
             {
                 float height = 4 * blockSize;
                 float width = 5 * blockSize;
-                float x = margin*3+mainArea.x+mainArea.w, y = mainArea.y;
-                nextShape.x = x; nextShape.y = y; nextShape.w = width; nextShape.h = height;
+                float x = margin + mainArea.x + mainArea.w, y = mainArea.y;
+                nextShape.x = x;
+                nextShape.y = y;
+                nextShape.w = width;
+                nextShape.h = height;
                 nextShape.subComponents.clear();
             }
 
@@ -923,7 +1082,7 @@ public class GameOfTetris {
                 blocks.setCenter(nextShape.centerX(), nextShape.centerY());
 
                 Tetromino nextTetr = GameOfTetris.getInstance().getNextTetr();
-                if(nextTetr!=null) {
+                if (nextTetr != null) {
                     int[][] nextTetrPos = Tetromino.generateBlockPos(new int[]{0, 1}, nextTetr.getRelativePos());
 
                     Color color = nextTetr.color;
@@ -946,17 +1105,17 @@ public class GameOfTetris {
         void drawScorePanel(Graphics g) {
             int fontHeight = g.getFontMetrics(g.getFont()).getHeight();
             int X = iX(nextShape.x);
-            int Y = iY(nextShape.y+nextShape.h);
+            int Y = iY(nextShape.y + nextShape.h);
 
-            Y +=fontHeight+margin*5;
-            g.drawString(String.format("Level: %03d",LEVEL),X, Y);
-            Y +=fontHeight+margin*5;
-            g.drawString(String.format("Lines: %03d",LINE),X, Y);
-            Y +=fontHeight+margin*5;
-            g.drawString(String.format("Score: %03d",SCORE),X, Y);
+            Y += fontHeight + margin;
+            g.drawString(String.format("Level: %03d", LEVEL), X, Y);
+            Y += fontHeight + margin;
+            g.drawString(String.format("Lines: %03d", LINE), X, Y);
+            Y += fontHeight + margin;
+            g.drawString(String.format("Score: %03d", SCORE), X, Y);
         }
 
-        void drawQuitBtn(Graphics g) {
+        void drawBtns(Graphics g) {
             // QuitBtn
             {
                 String text = "QUIT";
@@ -966,13 +1125,31 @@ public class GameOfTetris {
 
                 // set size
                 FontMetrics metrics = g.getFontMetrics(g.getFont());
-                quitBtn.w = metrics.stringWidth(pauseLabel.text) + margin * 4;
-                quitBtn.h = metrics.getHeight() + margin * 4;
+                quitBtn.w = metrics.stringWidth(quitBtn.text) + margin * 2;
+                quitBtn.h = metrics.getHeight() + margin * 2;
 
                 quitBtn.x = nextShape.x;
-                quitBtn.y = rHeight-margin-quitBtn.h;
+                quitBtn.y = rHeight - margin - quitBtn.h;
             }
             drawComponent(g, quitBtn);
+
+            // NewGameBtn
+            {
+                String text = "New Game";
+                newGameBtn.text = text;
+                newGameBtn.textColor = Color.black;
+                newGameBtn.borderColor = Color.black;
+
+                // set size
+                FontMetrics metrics = g.getFontMetrics(g.getFont());
+                newGameBtn.w = metrics.stringWidth(newGameBtn.text) + margin * 2;
+                newGameBtn.h = metrics.getHeight() + margin * 2;
+
+                newGameBtn.x = nextShape.x;
+                newGameBtn.y = quitBtn.y - margin - newGameBtn.h;
+            }
+            drawComponent(g, newGameBtn);
+
         }
 
         public void paint(Graphics g) {
@@ -981,7 +1158,7 @@ public class GameOfTetris {
             drawMainArea(g);
             drawNextShape(g);
             drawScorePanel(g);
-            drawQuitBtn(g);
+            drawBtns(g);
         }
     }
 }
