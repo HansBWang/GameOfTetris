@@ -6,9 +6,12 @@
  * Assignment 3
  */
 
+import sun.security.krb5.internal.PAData;
+
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.plaf.BorderUIResource;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
@@ -38,6 +41,7 @@ public class GameOfTetris {
     // UI properties
 
     final static int DEFAULT_BLOCKSIZE = 30;
+    final static int MAX_BLOCKSIZE = 40;
     static int BLOCKSIZE = DEFAULT_BLOCKSIZE;
     final static int MARGIN = 10;
 
@@ -74,6 +78,7 @@ public class GameOfTetris {
 
     /**
      * Main function as application entry point
+     *
      * @param args
      */
     public static void main(String[] args) {
@@ -147,6 +152,37 @@ public class GameOfTetris {
                     {true, true, true, true},
                     {false, false, false, false},
                     {false, false, false, false}
+            }, new int[]{3, -2}),
+            // Extra Shapes
+            Tetromino_E1(new Color(155, 155, 155), new boolean[][]{
+                    {false, true, false},
+                    {true, true, false},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_E2(new Color(135, 201, 71), new boolean[][]{
+                    {true, false, false},
+                    {false, true, true},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_E3(new Color(212, 138, 137), new boolean[][]{
+                    {false, false, false},
+                    {true, true, true},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_E4(new Color(223, 96, 13), new boolean[][]{
+                    {false, true, false},
+                    {true, false, false},
+                    {false, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_E5(new Color(43, 121, 144), new boolean[][]{
+                    {false, false, true},
+                    {false, true, false},
+                    {true, false, false}
+            }, new int[]{3, -2}),
+            Tetromino_E6(new Color(136, 126, 73), new boolean[][]{
+                {false, true, false},
+                {true, false, true},
+                {false, false, false}
             }, new int[]{3, -2});
 
             private Color color;
@@ -165,6 +201,7 @@ public class GameOfTetris {
 
             /**
              * Pick a random value of the Tetromino_Type enum.
+             *
              * @return a random Tetromino_Type.
              */
             public static Tetromino_Type getRandomType() {
@@ -174,6 +211,7 @@ public class GameOfTetris {
 
             /**
              * Get a deep copy of initRelativePos
+             *
              * @return
              */
             public boolean[][] getInitRelativePos() {
@@ -185,6 +223,7 @@ public class GameOfTetris {
 
             /**
              * Get a deep copy of InitAnchor
+             *
              * @return
              */
             public int[] getInitAnchor() {
@@ -196,17 +235,27 @@ public class GameOfTetris {
         private int[] anchor;
         private boolean[][] relativePos;
 
+        static Set<Tetromino_Type> blockedTypes = new HashSet<>(Arrays.asList(
+                Tetromino_Type.Tetromino_E1,
+                Tetromino_Type.Tetromino_E2,
+                Tetromino_Type.Tetromino_E3,
+                Tetromino_Type.Tetromino_E4,
+                Tetromino_Type.Tetromino_E5,
+                Tetromino_Type.Tetromino_E6));
+
         Color color;
 
         Tetromino() {
-            type = Tetromino_Type.getRandomType();
+            do {
+                type = Tetromino_Type.getRandomType();
+            }while (blockedTypes.contains(type));
             relativePos = type.getInitRelativePos();
             anchor = type.getInitAnchor();
             color = type.getColor();
         }
 
         public static int[][] generateBlockPos(int[] anchor, boolean[][] relativePos) {
-            int[][] blockPos = new int[4][2];
+            int[][] blockPos = new int[4][2]; // at most 4 blocks
             int idx = 0;
             for (int i = 0; i < relativePos.length; i++) {
                 for (int j = 0; j < relativePos[i].length; j++)
@@ -215,7 +264,11 @@ public class GameOfTetris {
                         blockPos[idx++][1] = i + anchor[1];
                     }
             }
-            return blockPos;
+
+            int[][]result = new int[idx][2];
+            for(int i=0;i<idx;i++)
+                result[i] = blockPos[i];
+            return result;
         }
 
         public void setAnchor(int[] anchor) {
@@ -317,7 +370,10 @@ public class GameOfTetris {
             this.pause = pause;
             if (pause) {
                 System.out.println("Timer stop!");
-                timer.cancel();
+                if (timer != null) {
+                    timer.cancel();
+                    timer = null;
+                }
             } else {
                 System.out.println("Timer start!");
                 timer = new Timer();
@@ -355,6 +411,7 @@ public class GameOfTetris {
 
     /**
      * Helper function - test whether a point is inside main area
+     *
      * @param x
      * @param y
      * @return
@@ -365,6 +422,7 @@ public class GameOfTetris {
 
     /**
      * Helper function - Rotate an boolean matrix in-place
+     *
      * @param mat
      * @param clockwise
      */
@@ -412,6 +470,7 @@ public class GameOfTetris {
 
     /**
      * Action Handling
+     *
      * @param action
      * @return whether should repaint
      */
@@ -446,7 +505,7 @@ public class GameOfTetris {
                 break;
             case Change:
                 t = new Tetromino();
-                while (t.type==fallingTetr.type||t.type==nextTetr.type)
+                while (t.type == fallingTetr.type || t.type == nextTetr.type)
                     t = new Tetromino();
                 t.anchor = fallingTetr.anchor;
                 newRelativePos = t.getRelativePos();
@@ -459,11 +518,10 @@ public class GameOfTetris {
         int[][] newBlocksPos = Tetromino.generateBlockPos(newAnchor, newRelativePos);
 
         if (hitTest(newBlocksPos)) {
-            if(action == Tetromino.Action_Type.Change){
+            if (action == Tetromino.Action_Type.Change) {
                 fallingTetr = t;
-                SCORE -= LEVEL*M;
-            }
-            else {
+                SCORE -= LEVEL * M;
+            } else {
                 fallingTetr.setAnchor(newAnchor);
                 fallingTetr.setRelativePos(newRelativePos);
             }
@@ -544,189 +602,438 @@ public class GameOfTetris {
      * Dialogs
      */
     private void showNewGameDialog() {
-        // Create a modal dialog
-        dialog = new JDialog(frame, "New Game", true);
 
-        // Use a flow layout
-        dialog.setLayout(new GridLayout(7, 1));
-        dialog.add(new Label("Game Setting:"));
+        if (SwingUtilities.isEventDispatchThread()) {
+            // Create a modal dialog
+            dialog = new JDialog(frame, "New Game", true);
 
-        Panel row = null;
+            // Use a flow layout
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        // Scoring Factor M
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
+            dialog.add(panel);
 
-            row.add(new Label("M:"));
+            {
+                JPanel row = new JPanel();
+                row.setLayout(new FlowLayout(FlowLayout.LEADING));
+                row.add(new JLabel("Game Setting:"));
+                panel.add(row);
+            }
 
-            Label v = new Label(String.format("%02d", M));
+            {
+                JPanel topPanel = new JPanel();
+                topPanel.setLayout(new GridBagLayout());
 
-            JSlider slider = new JSlider(JSlider.HORIZONTAL, M_MIN, M_MAX, M);
-            slider.setMajorTickSpacing(3);
-            slider.setMinorTickSpacing(1);
-            slider.setPaintTicks(true);
-            slider.setPaintLabels(true);
-            slider.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    M = slider.getValue();
-                    v.setText(String.format("%02d", M));
-                }
-            });
-            row.add(slider);
-            row.add(v);
-        }
-        dialog.add(row);
+                GridBagConstraints c = new GridBagConstraints();
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.gridy = 0;
+                c.insets = new Insets(10, 10, 10, 10);
 
-        // Difficulty Factor N
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
+                // Factors
+                {
+                    JPanel factorPanel = new JPanel();
+                    factorPanel.setLayout(new BoxLayout(factorPanel, BoxLayout.Y_AXIS));
+                    factorPanel.setBorder(new BorderUIResource.LineBorderUIResource(Color.lightGray));
 
-            row.add(new Label("N:"));
+                    factorPanel.add(new JLabel("Factors:"));
 
-            Label v = new Label(String.format("%02d", N));
+                    // Scoring Factor M
+                    {
+                        JPanel row = new JPanel();
+                        row.setLayout(new FlowLayout(FlowLayout.LEADING));
 
-            JSlider slider = new JSlider(JSlider.HORIZONTAL, N_MIN, N_MAX, N);
-            slider.setMajorTickSpacing(5);
-            slider.setMinorTickSpacing(1);
-            slider.setPaintTicks(true);
-            slider.setPaintLabels(true);
-            slider.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    N = slider.getValue();
-                    v.setText(String.format("%02d", N));
-                }
-            });
-            row.add(slider);
-            row.add(v);
-        }
-        dialog.add(row);
+                        row.add(new JLabel("M:"));
 
+                        JLabel v = new JLabel(String.format("%02d", M));
 
-        // Speed Factor S
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
-
-            row.add(new Label("S:"));
-
-            Label v = new Label(String.format("%.1f", S));
-
-            JSlider slider = new JSlider(JSlider.HORIZONTAL, (int) (S_MIN * S_SCALE), (int) (S_MAX * S_SCALE), (int) (S * S_SCALE));
-            slider.setMajorTickSpacing(3);
-            slider.setMinorTickSpacing(1);
-
-            Hashtable labelTable = new Hashtable();
-            labelTable.put(new Integer((int) (S_MIN * S_SCALE)), new JLabel(String.format("%.1f", S_MIN)));
-            labelTable.put(new Integer((int) (S_MAX * S_SCALE / 2)), new JLabel(String.format("%.1f", S_MAX / 2)));
-            labelTable.put(new Integer((int) (S_MAX * S_SCALE)), new JLabel(String.format("%.1f", S_MAX)));
-            slider.setLabelTable(labelTable);
-
-            slider.setPaintTicks(true);
-            slider.setPaintLabels(true);
-            slider.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    S = (float) slider.getValue() / S_SCALE;
-                    v.setText(String.format("%.1f", S));
-                }
-            });
-            row.add(slider);
-            row.add(v);
-        }
-        dialog.add(row);
-
-        // Number of Row
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
-
-            row.add(new Label("Row:"));
-
-            Label v = new Label(String.format("%02d", MAINAREA_HEIGHT));
-
-            JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_MAINAREA_HEIGHT, MAX_MAINAREA_HEIGHT, MAINAREA_HEIGHT);
-            slider.setMajorTickSpacing(5);
-            slider.setMinorTickSpacing(1);
-            slider.setPaintTicks(true);
-            slider.setPaintLabels(true);
-            slider.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    MAINAREA_HEIGHT = slider.getValue();
-                    v.setText(String.format("%02d", MAINAREA_HEIGHT));
-                }
-            });
-            row.add(slider);
-            row.add(v);
-        }
-        dialog.add(row);
-
-
-        // Number of Columns
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
-
-            row.add(new Label("Columns:"));
-
-            Label v = new Label(String.format("%02d", MAINAREA_WIDTH));
-
-            JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_MAINAREA_WIDTH, MAX_MAINAREA_WIDTH, MAINAREA_WIDTH);
-            slider.setMajorTickSpacing(5);
-            slider.setMinorTickSpacing(1);
-            slider.setPaintTicks(true);
-            slider.setPaintLabels(true);
-            slider.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    MAINAREA_WIDTH = slider.getValue();
-                    v.setText(String.format("%02d", MAINAREA_WIDTH));
-                }
-            });
-            row.add(slider);
-            row.add(v);
-        }
-        dialog.add(row);
-
-        // Buttons
-        {
-            row = new Panel();
-            row.setLayout(new FlowLayout(FlowLayout.LEADING));
-
-            // Create an Start button
-            Button start = new Button("Start");
-            start.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    //todo start game
-                    startGame();
-                    dialog.setVisible(false);
-                }
-            });
-
-            row.add(start);
-
-            // Create an Quit button
-            Button quit = new Button("Cancel");
-            quit.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    if (pause && !isGameOver) {
-                        setPause(false);
+                        JSlider slider = new JSlider(JSlider.HORIZONTAL, M_MIN, M_MAX, M);
+                        slider.setMajorTickSpacing(3);
+                        slider.setMinorTickSpacing(1);
+                        slider.setPaintTicks(true);
+                        slider.setPaintLabels(true);
+                        slider.addChangeListener(new ChangeListener() {
+                            @Override
+                            public void stateChanged(ChangeEvent e) {
+                                M = slider.getValue();
+                                v.setText(String.format("%02d", M));
+                            }
+                        });
+                        row.add(slider);
+                        row.add(v);
+                        factorPanel.add(row);
                     }
-                    dialog.setVisible(false);
+
+                    // Difficulty Factor N
+                    {
+                        JPanel row = new JPanel();
+                        row.setLayout(new FlowLayout(FlowLayout.LEADING));
+
+                        row.add(new JLabel("N:"));
+
+                        JLabel v = new JLabel(String.format("%02d", N));
+
+                        JSlider slider = new JSlider(JSlider.HORIZONTAL, N_MIN, N_MAX, N);
+                        slider.setMajorTickSpacing(5);
+                        slider.setMinorTickSpacing(1);
+                        slider.setPaintTicks(true);
+                        slider.setPaintLabels(true);
+                        slider.addChangeListener(new ChangeListener() {
+                            @Override
+                            public void stateChanged(ChangeEvent e) {
+                                N = slider.getValue();
+                                v.setText(String.format("%02d", N));
+                            }
+                        });
+                        row.add(slider);
+                        row.add(v);
+
+                        factorPanel.add(row);
+                    }
+
+                    // Speed Factor S
+                    {
+                        JPanel row = new JPanel();
+                        row.setLayout(new FlowLayout(FlowLayout.LEADING));
+
+                        row.add(new JLabel("S:"));
+
+                        JLabel v = new JLabel(String.format("%.1f", S));
+
+                        JSlider slider = new JSlider(JSlider.HORIZONTAL, (int) (S_MIN * S_SCALE), (int) (S_MAX * S_SCALE), (int) (S * S_SCALE));
+                        slider.setMajorTickSpacing(3);
+                        slider.setMinorTickSpacing(1);
+
+                        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+                        labelTable.put((int) (S_MIN * S_SCALE), new JLabel(String.format("%.1f", S_MIN)));
+                        labelTable.put((int) (S_MAX * S_SCALE / 2), new JLabel(String.format("%.1f", S_MAX / 2)));
+                        labelTable.put((int) (S_MAX * S_SCALE), new JLabel(String.format("%.1f", S_MAX)));
+                        slider.setLabelTable(labelTable);
+
+                        slider.setPaintTicks(true);
+                        slider.setPaintLabels(true);
+                        slider.addChangeListener(new ChangeListener() {
+                            @Override
+                            public void stateChanged(ChangeEvent e) {
+                                S = (float) slider.getValue() / S_SCALE;
+                                v.setText(String.format("%.1f", S));
+                            }
+                        });
+                        row.add(slider);
+                        row.add(v);
+                        factorPanel.add(row);
+                    }
+                    c.gridx = 0;
+                    topPanel.add(factorPanel, c);
                 }
-            });
 
-            row.add(quit);
+                // Main Area Settings
+                {
+                    JPanel mainAreaPanel = new JPanel();
+                    mainAreaPanel.setLayout(new BoxLayout(mainAreaPanel, BoxLayout.Y_AXIS));
+                    mainAreaPanel.setBorder(new BorderUIResource.LineBorderUIResource(Color.lightGray));
+
+                    mainAreaPanel.add(new JLabel("Main Area:"));
+
+                    // Number of Row
+                    {
+                        JPanel row = new JPanel();
+                        row.setLayout(new FlowLayout(FlowLayout.TRAILING));
+
+                        row.add(new JLabel("Row:"));
+
+                        JLabel v = new JLabel(String.format("%02d", MAINAREA_HEIGHT));
+
+                        JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_MAINAREA_HEIGHT, MAX_MAINAREA_HEIGHT, MAINAREA_HEIGHT);
+                        slider.setMajorTickSpacing(5);
+                        slider.setMinorTickSpacing(1);
+                        slider.setPaintTicks(true);
+                        slider.setPaintLabels(true);
+                        slider.addChangeListener(new ChangeListener() {
+                            @Override
+                            public void stateChanged(ChangeEvent e) {
+                                MAINAREA_HEIGHT = slider.getValue();
+                                v.setText(String.format("%02d", MAINAREA_HEIGHT));
+                            }
+                        });
+                        row.add(slider);
+                        row.add(v);
+                        mainAreaPanel.add(row);
+                    }
+
+
+                    // Number of Columns
+                    {
+                        JPanel row = new JPanel();
+                        row.setLayout(new FlowLayout(FlowLayout.TRAILING));
+
+                        row.add(new JLabel("Columns:"));
+
+                        JLabel v = new JLabel(String.format("%02d", MAINAREA_WIDTH));
+
+                        JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_MAINAREA_WIDTH, MAX_MAINAREA_WIDTH, MAINAREA_WIDTH);
+                        slider.setMajorTickSpacing(5);
+                        slider.setMinorTickSpacing(1);
+                        slider.setPaintTicks(true);
+                        slider.setPaintLabels(true);
+                        slider.addChangeListener(new ChangeListener() {
+                            @Override
+                            public void stateChanged(ChangeEvent e) {
+                                MAINAREA_WIDTH = slider.getValue();
+                                v.setText(String.format("%02d", MAINAREA_WIDTH));
+                            }
+                        });
+                        row.add(slider);
+                        row.add(v);
+                        mainAreaPanel.add(row);
+                    }
+
+                    // Block Size
+                    {
+                        JPanel row = new JPanel();
+                        row.setLayout(new FlowLayout(FlowLayout.TRAILING));
+
+                        row.add(new JLabel("Block Size:"));
+
+                        JLabel v = new JLabel(String.format("%02d", BLOCKSIZE));
+
+                        JSlider slider = new JSlider(JSlider.HORIZONTAL, DEFAULT_BLOCKSIZE, MAX_BLOCKSIZE, BLOCKSIZE);
+                        slider.setMajorTickSpacing(5);
+                        slider.setMinorTickSpacing(1);
+                        slider.setPaintTicks(true);
+                        slider.setPaintLabels(true);
+                        slider.addChangeListener(new ChangeListener() {
+                            @Override
+                            public void stateChanged(ChangeEvent e) {
+                                BLOCKSIZE = slider.getValue();
+                                v.setText(String.format("%02d", BLOCKSIZE));
+                                dialog.pack(); // re-draw shapes
+                            }
+                        });
+                        row.add(slider);
+                        row.add(v);
+
+                        c.gridx = 1;
+                        mainAreaPanel.add(row);
+                    }
+                    topPanel.add(mainAreaPanel, c);
+                }
+                panel.add(topPanel);
+            }
+
+            // Custom Shape
+            {
+                JPanel customShapePanel = new JPanel();
+                customShapePanel.setLayout(new GridBagLayout());
+                customShapePanel.setSize(200,200);
+
+                GridBagConstraints c = new GridBagConstraints();
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.insets = new Insets(5, 5, 5, 5);
+
+                {
+                    {
+                        c.gridx = 0; c.gridy = 0;
+                        Tetromino.Tetromino_Type type = Tetromino.Tetromino_Type.Tetromino_E1;
+                        JPanel element = new JPanel();
+                        element.setLayout(new FlowLayout());
+                        element.add(new ShapePanel(type));
+                        JCheckBox cb = new JCheckBox();
+                        cb.setSelected(!Tetromino.blockedTypes.contains(type));
+                        cb.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if(!Tetromino.blockedTypes.contains(type))
+                                    Tetromino.blockedTypes.add(type);
+                                else
+                                    Tetromino.blockedTypes.remove(type);
+                            }
+                        });
+                        element.add(cb);
+                        customShapePanel.add(element, c);
+                    }
+
+                    {
+                        c.gridx = 1; c.gridy = 0;
+                        Tetromino.Tetromino_Type type = Tetromino.Tetromino_Type.Tetromino_E2;
+                        JPanel element = new JPanel();
+                        element.setLayout(new FlowLayout());
+                        element.add(new ShapePanel(type));
+                        JCheckBox cb = new JCheckBox();
+                        cb.setSelected(!Tetromino.blockedTypes.contains(type));
+                        cb.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if(!Tetromino.blockedTypes.contains(type))
+                                    Tetromino.blockedTypes.add(type);
+                                else
+                                    Tetromino.blockedTypes.remove(type);
+                            }
+                        });
+                        element.add(cb);
+                        customShapePanel.add(element, c);
+                    }
+
+                    {
+                        c.gridx = 0; c.gridy = 1;
+                        Tetromino.Tetromino_Type type = Tetromino.Tetromino_Type.Tetromino_E3;
+                        JPanel element = new JPanel();
+                        element.setLayout(new FlowLayout());
+                        element.add(new ShapePanel(type));
+                        JCheckBox cb = new JCheckBox();
+                        cb.setSelected(!Tetromino.blockedTypes.contains(type));
+                        cb.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if(!Tetromino.blockedTypes.contains(type))
+                                    Tetromino.blockedTypes.add(type);
+                                else
+                                    Tetromino.blockedTypes.remove(type);
+                            }
+                        });
+                        element.add(cb);
+                        customShapePanel.add(element, c);
+                    }
+
+                    {
+                        c.gridx = 1; c.gridy = 1;
+                        Tetromino.Tetromino_Type type = Tetromino.Tetromino_Type.Tetromino_E4;
+                        JPanel element = new JPanel();
+                        element.setLayout(new FlowLayout());
+                        element.add(new ShapePanel(type));
+                        JCheckBox cb = new JCheckBox();
+                        cb.setSelected(!Tetromino.blockedTypes.contains(type));
+                        cb.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if(!Tetromino.blockedTypes.contains(type))
+                                    Tetromino.blockedTypes.add(type);
+                                else
+                                    Tetromino.blockedTypes.remove(type);
+                            }
+                        });
+                        element.add(cb);
+                        customShapePanel.add(element, c);
+                    }
+
+                    {
+                        c.gridx = 0; c.gridy = 2;
+                        Tetromino.Tetromino_Type type = Tetromino.Tetromino_Type.Tetromino_E5;
+                        JPanel element = new JPanel();
+                        element.setLayout(new FlowLayout());
+                        element.add(new ShapePanel(type));
+                        JCheckBox cb = new JCheckBox();
+                        cb.setSelected(!Tetromino.blockedTypes.contains(type));
+                        cb.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if(!Tetromino.blockedTypes.contains(type))
+                                    Tetromino.blockedTypes.add(type);
+                                else
+                                    Tetromino.blockedTypes.remove(type);
+                            }
+                        });
+                        element.add(cb);
+                        customShapePanel.add(element, c);
+                    }
+
+                    {
+                        c.gridx = 1; c.gridy = 2;
+                        Tetromino.Tetromino_Type type = Tetromino.Tetromino_Type.Tetromino_E6;
+                        JPanel element = new JPanel();
+                        element.setLayout(new FlowLayout());
+                        element.add(new ShapePanel(type));
+                        JCheckBox cb = new JCheckBox();
+                        cb.setSelected(!Tetromino.blockedTypes.contains(type));
+                        cb.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if(!Tetromino.blockedTypes.contains(type))
+                                    Tetromino.blockedTypes.add(type);
+                                else
+                                    Tetromino.blockedTypes.remove(type);
+                            }
+                        });
+                        element.add(cb);
+                        customShapePanel.add(element, c);
+                    }
+                }
+                panel.add(customShapePanel);
+            }
+
+            // Buttons
+            {
+                JPanel btnPanel = new JPanel();
+                btnPanel.setLayout(new FlowLayout(FlowLayout.LEADING));
+
+                // Create an Start button
+                Button start = new Button("Start");
+                start.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        startGame();
+                        dialog.setVisible(false);
+                    }
+                });
+
+                btnPanel.add(start);
+
+                // Create an Quit button
+                Button quit = new Button("Cancel");
+                quit.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        if (pause && !isGameOver && isPlaying) {
+                            setPause(false);
+                        }
+                        dialog.setVisible(false);
+                    }
+                });
+
+                btnPanel.add(quit);
+                panel.add(btnPanel);
+            }
+
+            // Show dialog
+            dialog.pack();
+            dialog.setVisible(true);
+        } else {
+
+            try {
+                SwingUtilities.invokeAndWait(new Runnable() {
+                    @Override
+                    public void run() {
+                        showNewGameDialog();
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-        dialog.add(row);
+    }
 
-        // Show dialog
-        dialog.pack();
-        dialog.setVisible(true);
+    static class ShapePanel extends JPanel {
+
+        private Tetromino.Tetromino_Type type;
+
+        public ShapePanel(Tetromino.Tetromino_Type type) {
+            this.type = type;
+        }
+
+        public Dimension getPreferredSize() {
+            return new Dimension(BLOCKSIZE * 3+1, BLOCKSIZE * 3+1);
+        }
+
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            int[][] pos = Tetromino.generateBlockPos(new int[]{0, 0}, type.getInitRelativePos());
+            for (int i = 0; i < pos.length; i++) {
+                int[] xy = pos[i];
+                int x = xy[0], y = xy[1];
+                g.setColor(type.color);
+                g.fillRect(x * BLOCKSIZE, y * BLOCKSIZE, BLOCKSIZE, BLOCKSIZE);
+                g.setColor(Color.black);
+                g.drawRect(x * BLOCKSIZE, y * BLOCKSIZE, BLOCKSIZE, BLOCKSIZE);
+            }
+        }
     }
 
     /**
@@ -894,18 +1201,18 @@ public class GameOfTetris {
                     }
 
                     boolean setFlag = true;
-                    for(RectComponent block : fallingBlockComponents){
-                        if(block.inside(xA,yA)){
+                    for (RectComponent block : fallingBlockComponents) {
+                        if (block.inside(xA, yA)) {
                             setFlag = false;
-                            if(!changeFlag) {
-                                if(GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.Change))
+                            if (!changeFlag) {
+                                if (GameOfTetris.getInstance().moveAction(Tetromino.Action_Type.Change))
                                     repaint();
                                 changeFlag = true;
                                 break;
                             }
                         }
                     }
-                    if(setFlag)
+                    if (setFlag)
                         changeFlag = false;
 
                 }
