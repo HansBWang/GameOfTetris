@@ -4,6 +4,27 @@
  * Student: Binhan Wang (bxw161330)
  * <p>
  * Assignment 3
+ *
+ * This program fulfills all the requirements in the Assignment3 including bonus requirement:
+ *
+ * 1. Introducing Game Setting Dialog before each game, so use can adjust factors as needed.
+ *
+ * 2. In the Setting Dialog, user can change following gaming factors:
+ *
+ *      M – scoring factor (range: 1-10).
+ *      N – number of rows required for each Level of difficulty (range: 20-50).
+ *      S – speed factor (range: 0.1-1.0).
+ *      Rows - number of row in main area.
+ *      Columns - number of columns in main area.
+ *      Block Size - adjust the size of block in the game.
+ *                  (The block size adjustment is essentially changing canvas size, so during the game user can also drag the window to adjust)
+ *
+ * 3. Move mouse into falling shape will trigger a change shape action, which will replace the falling shape with a new one other that itself nor
+ *    the next shape. However, this action won't be performed if the space in main area is not allowed for such replacement.
+ *    Score will be deducted if change shape action takes place.
+ *
+ * 4. (Bonus) In the Setting Dialog, user can choose from 6 extra shapes to be added into random pool, so that user will encounter
+ *    the selected shape during the game.
  */
 
 import sun.security.krb5.internal.PAData;
@@ -601,6 +622,27 @@ public class GameOfTetris {
     /**
      * Dialogs
      */
+    private void repaintDialog(){
+        if(SwingUtilities.isEventDispatchThread()){
+            dialog.revalidate();
+            dialog.repaint();
+            dialog.pack();
+        }
+        else {
+            try{
+                SwingUtilities.invokeAndWait(new Runnable() {
+                    @Override
+                    public void run() {
+                        repaintDialog();
+                    }
+                });
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void showNewGameDialog() {
 
         if (SwingUtilities.isEventDispatchThread()) {
@@ -739,7 +781,7 @@ public class GameOfTetris {
                         JPanel row = new JPanel();
                         row.setLayout(new FlowLayout(FlowLayout.TRAILING));
 
-                        row.add(new JLabel("Row:"));
+                        row.add(new JLabel("Rows:"));
 
                         JLabel v = new JLabel(String.format("%02d", MAINAREA_HEIGHT));
 
@@ -806,7 +848,7 @@ public class GameOfTetris {
                             public void stateChanged(ChangeEvent e) {
                                 BLOCKSIZE = slider.getValue();
                                 v.setText(String.format("%02d", BLOCKSIZE));
-                                dialog.pack(); // re-draw shapes
+                                repaintDialog();
                             }
                         });
                         row.add(slider);
@@ -824,7 +866,6 @@ public class GameOfTetris {
             {
                 JPanel customShapePanel = new JPanel();
                 customShapePanel.setLayout(new GridBagLayout());
-                customShapePanel.setSize(200,200);
 
                 GridBagConstraints c = new GridBagConstraints();
                 c.fill = GridBagConstraints.HORIZONTAL;
